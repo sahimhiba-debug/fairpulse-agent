@@ -1,3 +1,6 @@
+
+[![CI](https://github.com/sahimhiba-debug/fairpulse-agent/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/sahimhiba-debug/fairpulse-agent/actions/workflows/ci.yml)
+
 # FairPulse Agent — un agent d'audit ML, construit par couches
 
 Un **agent d'audit** qui mesure la **robustesse et l'équité** des *foundation models* PPG
