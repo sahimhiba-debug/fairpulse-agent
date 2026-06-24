@@ -1,0 +1,55 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Pipeline CI (Intégration Continue) — GitHub Actions, pour le dépôt DÉDIÉ
+# `fairpulse-agent` (où le code de l'agent est à la RACINE du dépôt).
+#
+# ⚠️ EMPLACEMENT : GitHub n'exécute QUE les workflows dans .github/workflows/ à la
+#    racine du dépôt. Place donc ce fichier en .github/workflows/ci.yml (voir
+#    ci/README.md), puis commit + push.
+#
+# Vocabulaire : WORKFLOW (le pipeline) · TRIGGER (`on:`, l'événement) · JOB (tâche
+# sur un runner isolé) · RUNNER (VM GitHub, ubuntu = Linux donc CPU, pas de MPS) ·
+# STEP (étape). Les deux jobs tournent EN PARALLÈLE.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  # ===========================================================================
+  # JOB 1 — Lint + tests unitaires (légers, sans torch ni `fairpulse`).
+  # Les tests de schémas (validation Pydantic) ne dépendent PAS du code fairpulse,
+  # donc ils tournent partout. Les tests d'intégration d'endpoints, eux, importent
+  # `fairpulse` (fourni hors de ce dépôt) -> exécutés en local avec FAIRPULSE_ROOT.
+  # ===========================================================================
+  lint-test:
+    name: Lint (ruff) + tests schémas (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Installer les outils de qualité
+        run: pip install ruff pytest pydantic
+      - name: Lint — ruff (config line-length=100 dans pyproject.toml)
+        run: ruff check .
+      - name: Tests — validation des schémas (garde-fous d'entrée)
+        env:
+          PYTHONPATH: .:src
+        run: pytest api/tests/test_schemas.py -q
+
+  # ===========================================================================
+  # JOB 2 — Build de l'image Docker (vérifie qu'elle SE CONSTRUIT).
+  # Ne lance pas l'API (poids/données fournis au runtime, hors dépôt).
+  # ===========================================================================
+  docker-build:
+    name: Build de l'image Docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construire l'image API
+        run: docker build -f api/deploy/Dockerfile -t fairpulse-agent-api:ci .

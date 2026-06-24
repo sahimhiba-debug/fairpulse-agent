@@ -1,0 +1,18 @@
+# Venv dédié — ne jamais committer
+.venv/
+
+# Rapports produits par l'agent : restent LOCAUX (OpenOximetry = données restreintes,
+# l'audit tourne strictement hors-ligne ; les sorties ne sont pas versionnées).
+reports/
+
+# Secrets / config locale — JAMAIS commités
+.env
+api/.env
+
+# Index RAG généré (local, reconstructible via rag/build_index.py)
+rag/index/
+
+# Python
+__pycache__/
+*.pyc
+.ruff_cache/

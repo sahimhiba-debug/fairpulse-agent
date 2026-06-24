@@ -1,0 +1,32 @@
+# Dépendances de l'image API (Linux/CPU). torch est installé À PART dans le
+# Dockerfile depuis l'index CPU de PyTorch (sinon pip prend la build CUDA, énorme).
+# On n'épingle pas finement : l'important pédagogiquement est la chaîne, pas le lock.
+
+# --- socle fairpulse (mêmes deps que le projet) ---
+numpy>=1.26
+pandas>=2.2
+scipy>=1.13
+scikit-learn>=1.5
+matplotlib>=3.9
+pyyaml>=6.0
+tqdm>=4.66
+wfdb>=4.1
+pyarrow>=16
+# NB : timm/einops (wrapper SIGMA-PPG, NON utilisé par cet agent) sont volontairement
+# EXCLUS de l'image. Ils tirent torchvision, qui — mal apparié à torch+cpu — casse
+# l'import de `transformers` (RAG) avec « operator torchvision::nms does not exist ».
+# Les modèles audités (PaPaGei-S, Pulse-PPG) n'ont besoin ni de timm ni de torchvision.
+
+# --- agent : LangGraph (couche 1) + MCP (couche 2) + RAG (couche 3) ---
+langgraph>=0.2
+langchain-core>=0.3
+mcp>=1.0
+sentence-transformers>=3
+
+# --- API (couche 4) ---
+fastapi>=0.115
+uvicorn>=0.30
+sqlalchemy>=2.0
+psycopg[binary]>=3.1
+pydantic-settings>=2
+httpx>=0.27

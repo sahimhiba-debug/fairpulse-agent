@@ -1,0 +1,10 @@
+# Contexte de build = fairpulse_agent/. On EXCLUT ce qui ne doit pas entrer dans
+# l'image : venv (énorme), index RAG (monté au runtime), rapports, caches, secrets.
+.venv/
+rag/index/
+reports/
+**/__pycache__/
+*.pyc
+.ruff_cache/
+.env
+api/.env

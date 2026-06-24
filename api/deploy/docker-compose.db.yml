@@ -1,0 +1,31 @@
+# PALIER 2 — Postgres local pour la persistance des jobs d'audit.
+#
+# Les identifiants viennent de TON .env (jamais en dur ici). La syntaxe ${VAR:?msg}
+# fait échouer le lancement si la variable n'est pas définie -> garde-fou.
+#
+# Lancer (depuis la racine du projet) :
+#   docker compose --env-file fairpulse_agent/.env \
+#       -f fairpulse_agent/api/deploy/docker-compose.db.yml up -d
+# Arrêter (en gardant les données) :   docker compose ... down
+# Tout supprimer (données comprises) : docker compose ... down -v
+
+services:
+  db:
+    image: postgres:16
+    container_name: fairpulse_pg
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?définis POSTGRES_USER dans .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?définis POSTGRES_PASSWORD dans .env}
+      POSTGRES_DB: ${POSTGRES_DB:?définis POSTGRES_DB dans .env}
+    ports:
+      - "5432:5432"            # exposé sur localhost uniquement
+    volumes:
+      - fairpulse_pgdata:/var/lib/postgresql/data   # persiste les données sur disque
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  fairpulse_pgdata:           # volume nommé : survit à `down` (pas à `down -v`)

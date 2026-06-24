@@ -1,0 +1,43 @@
+[project]
+name = "fairpulse-agent"
+version = "0.1.0"
+description = "Agent d'audit (LangGraph + MCP + RAG + FastAPI) pour la robustesse/équité des foundation models PPG. Orchestre le pipeline FairPulse en lecture seule."
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Hiba Sahim Elmir" }]
+
+# Dépendances directes de l'agent (couches 1-4). NB : le code d'audit `fairpulse`
+# n'est PAS sur PyPI : il est fourni à part (projet FairPulse local, via FAIRPULSE_ROOT)
+# et apporte torch + numpy + scipy + scikit-learn + wfdb. On les redéclare ici en
+# socle minimal pour que l'API/les schémas s'importent même sans l'extra lourd.
+dependencies = [
+  "langgraph>=0.2",
+  "langchain-core>=0.3",
+  "mcp>=1.0",                 # couche 2 : serveur/cli MCP
+  "sentence-transformers>=3", # couche 3 : embeddings RAG (tire torch)
+  "fastapi>=0.115",           # couche 4 : API
+  "uvicorn>=0.30",
+  "sqlalchemy>=2.0",          # couche 4 : persistance Postgres
+  "psycopg[binary]>=3.1",
+  "pydantic-settings>=2",
+  "httpx>=0.27",
+  "numpy>=1.26",
+  "scipy>=1.13",
+  "scikit-learn>=1.5",
+  "pandas>=2.2",
+  "pyarrow>=16",
+]
+
+[project.optional-dependencies]
+dev = ["ruff>=0.6", "pytest>=8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agent"]
+
+[tool.ruff]
+# Le code est écrit pour 100 colonnes (aligné sur le projet FairPulse).
+line-length = 100

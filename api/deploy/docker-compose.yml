@@ -1,0 +1,58 @@
+# PALIER 3 — orchestration de DEUX services : l'API (depuis le Dockerfile) + Postgres.
+#
+# Concept réseau Docker : compose crée un réseau privé où chaque service est
+# joignable PAR SON NOM. L'API se connecte donc à Postgres via l'hôte `db`
+# (le nom du service), surtout PAS `localhost` : dans le conteneur API, `localhost`
+# = le conteneur API lui-même, pas la base.
+#
+# Lancement (depuis la racine du projet) :
+#   docker compose --env-file fairpulse_agent/.env \
+#       -f fairpulse_agent/api/deploy/docker-compose.yml up --build
+#
+# Les identifiants viennent de TON .env (jamais en dur). ${VAR:?msg} -> échec clair si absent.
+
+name: fairpulse-agent
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?définis POSTGRES_USER dans .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?définis POSTGRES_PASSWORD dans .env}
+      POSTGRES_DB: ${POSTGRES_DB:?définis POSTGRES_DB dans .env}
+    volumes:
+      - fairpulse_pgdata:/var/lib/postgresql/data
+    healthcheck:                       # l'API attendra que la base soit "healthy"
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ../..                   # = fairpulse_agent/ (où vit le code à copier)
+      dockerfile: api/deploy/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy     # ne démarre l'API qu'une fois Postgres prêt
+    environment:
+      # ⚠️ host = 'db' (service Docker), PAS localhost. Credentials via env.
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      PYTORCH_ENABLE_MPS_FALLBACK: "1"
+    ports:
+      # publié sur localhost de l'hôte ; port configurable via API_PORT (défaut 8000).
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    volumes:
+      # Montés en LECTURE SEULE (ro) — jamais copiés dans l'image. Les 3 premiers
+      # pointent vers le projet FairPulse : par défaut l'agent est DANS FairPulse
+      # (chemins relatifs) ; en dépôt DÉDIÉ, surcharge FAIRPULSE_SRC/WEIGHTS/DATA
+      # dans ton .env pour pointer ton checkout FairPulse local.
+      - ${FAIRPULSE_SRC:-../../../src/fairpulse}:/app/src/fairpulse:ro      # code fairpulse
+      - ${FAIRPULSE_WEIGHTS:-../../../models/weights}:/app/models/weights:ro  # poids PPG
+      - ${FAIRPULSE_DATA:-../../../data/raw}:/app/data/raw:ro              # données OpenOximetry
+      - ../../rag/index:/app/fairpulse_agent/rag/index:ro                  # index RAG (dans ce dépôt)
+      # Cache HuggingFace de l'hôte : réutilise le modèle d'embeddings déjà téléchargé.
+      - ${HOME}/.cache/huggingface:/root/.cache/huggingface
+
+volumes:
+  fairpulse_pgdata:
