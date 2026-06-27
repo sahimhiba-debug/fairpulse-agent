@@ -1,7 +1,26 @@
 
+<!-- Statut (ce qui est testé / vérifié dans le dépôt) -->
 [![CI](https://github.com/sahimhiba-debug/fairpulse-agent/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/sahimhiba-debug/fairpulse-agent/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](./pyproject.toml)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Docker](https://img.shields.io/badge/Docker-image-2496ED.svg?logo=docker&logoColor=white)](./api/deploy/Dockerfile)
+
+<!-- Stack (descriptif — PAS un statut de test) -->
+🧱 **Stack :**
+![LangGraph](https://img.shields.io/badge/LangGraph-orchestration-1C3C3C?style=flat-square)
+![MCP](https://img.shields.io/badge/MCP-tools-7C3AED?style=flat-square)
+![RAG](https://img.shields.io/badge/RAG-MiniLM%20%2B%20cosinus-555?style=flat-square)
+![FastAPI](https://img.shields.io/badge/FastAPI-API-009688?style=flat-square&logo=fastapi&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-persistance-336791?style=flat-square&logo=postgresql&logoColor=white)
 
 # FairPulse Agent — un agent d'audit ML, construit par couches
+
+<p align="center">
+  <img src="docs/images/demo.gif" alt="Démo terminal — flux d'audit FairPulse (illustratif)" width="760">
+</p>
+
+<p align="center"><em>Démo illustrative du flux d'audit (couche 3 : LangGraph + MCP + RAG). Chiffres synthétiques — aucune donnée réelle.</em></p>
 
 Un **agent d'audit** qui mesure la **robustesse et l'équité** des *foundation models* PPG
 (photopléthysmographie / oxymétrie) **selon la couleur de peau** — le biais d'oxymétrie étant
@@ -49,6 +68,44 @@ Le rapport produit est **identique** d'une couche à l'autre (mêmes chiffres) �
 ajoute une capacité d'**infrastructure**, pas un changement de résultat. Le rapport contient :
 MAE par groupe de teint **avec IC bootstrap au niveau patient**, biais de calibration, disparité
 (*gap*), test de robustesse **leave-one-skin-tone-out**, puis le **contexte littérature** sourcé.
+
+### Le graphe d'audit (LangGraph)
+
+<p align="center">
+  <img src="docs/images/langgraph.png" alt="Graphe LangGraph de l'agent d'audit FairPulse (couche 3 / RAG)" width="260">
+</p>
+
+<p align="center"><sub>Graphe <code>build_rag_graph()</code> (couche 3) : 8 nœuds enchaînés, état partagé. Le nœud
+<code>retrieve_context</code> (RAG) s'insère entre la robustesse et le rapport. Topologie fidèle à
+<code>src/agent/mcp_graph_rag.py</code>.</sub></p>
+
+### Le RAG (couche 3), en détail
+
+<p align="center">
+  <img src="docs/images/rag_schema.png" alt="Schéma du RAG : indexation puis requête, citation sans génération LLM" width="620">
+</p>
+
+<p align="center"><sub><b>RAG extractif</b> : <b>indexation</b> (corpus → chunks → embeddings MiniLM 384-dim → index local),
+puis <b>requête</b> (les chiffres de l'audit dérivent 2-3 requêtes → cosinus → top-k filtré par seuil →
+passages <b>cités tels quels</b>). <b>Aucun LLM ne rédige la réponse</b> ; un seuil
+<code>min_score</code> sert de garde-fou anti-hallucination. Fidèle à <code>rag/store.py</code> +
+<code>src/agent/mcp_nodes.py:retrieve_context_node</code>.</sub></p>
+
+### L'API (couche 4)
+
+<p align="center">
+  <img src="docs/images/swagger.png" alt="API FairPulse — Swagger UI (endpoint POST /audit, réponse 202)" width="760">
+</p>
+
+<p align="center"><em>API FastAPI — documentation Swagger auto-générée, endpoint POST /audit (réponse asynchrone 202 + job_id).</em></p>
+
+### Exemple de rapport
+
+Un **exemple de la mise en page** du rapport est disponible :
+**[`docs/examples/rapport_exemple.md`](docs/examples/rapport_exemple.md)**.
+⚠️ Il est **synthétique** (chiffres illustratifs, **aucun audit réel**, **aucune donnée restreinte**) —
+il sert uniquement à montrer la structure (métriques + IC, équité par teint, contexte RAG cité, trace
+d'exécution). Un vrai rapport exige un checkout FairPulse local + poids + données restreintes (voir ci-dessous).
 
 ---
 

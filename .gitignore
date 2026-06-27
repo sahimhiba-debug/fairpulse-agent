@@ -16,3 +16,6 @@ rag/index/
 __pycache__/
 *.pyc
 .ruff_cache/
+
+# Enregistrements asciinema bruts (intermédiaires) — seul le .gif est versionné
+*.cast

@@ -1,0 +1,18 @@
+%% Graphe LangGraph FairPulse Agent — couche 3 (RAG), graphe le plus complet.
+%% FIDÈLE À LA DÉFINITION RÉELLE : src/agent/mcp_graph_rag.py:build_rag_graph()
+%% (mêmes nœuds et arêtes que le StateGraph compilé ; reconstruit ici car
+%%  l'exécution de draw_mermaid_png() exige le paquet `fairpulse` non disponible
+%%  dans cet environnement — la topologie ci-dessous est identique au code).
+flowchart TB
+  START([START]) --> N1["load_model<br/><i>charge le modèle PPG (MCP)</i>"]
+  N1 --> N2["load_data<br/><i>échantillon OpenOximetry (MCP)</i>"]
+  N2 --> N3["run_inference<br/><i>embeddings PPG (MPS, MCP)</i>"]
+  N3 --> N4["compute_metrics<br/><i>MAE + IC95 bootstrap patient</i>"]
+  N4 --> N5["run_calibration_test<br/><i>gap + biais par teint</i>"]
+  N5 --> N6["run_robustness_test<br/><i>leave-one-skin-tone-out</i>"]
+  N6 --> N7["retrieve_context<br/><b>RAG &mdash; couche 3</b><br/><i>contexte cité, sans LLM</i>"]
+  N7 --> N8["write_report<br/><i>rapport markdown + JSON</i>"]
+  N8 --> E([END])
+
+  classDef rag fill:#ebfbee,stroke:#2f9e44,stroke-width:1.5px;
+  class N7 rag;

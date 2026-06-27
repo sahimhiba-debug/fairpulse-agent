@@ -1,0 +1,31 @@
+%% Schéma du RAG FairPulse Agent (couche 3) — FIDÈLE AU CODE.
+%% Source : rag/embedder.py, rag/store.py, rag/build_index.py, src/agent/mcp_nodes.py:retrieve_context_node
+%% Point clé : RAG EXTRACTIF — les passages récupérés sont CITÉS tels quels dans le rapport.
+%% AUCUN LLM ne génère la réponse.
+flowchart TB
+  subgraph IDX["INDEXATION (1 fois)"]
+    direction LR
+    A["Corpus local<br/>docs FairPulse .md / .txt<br/>(drop-folder rag/corpus)"] --> B["Chunker<br/>découpe par section<br/>(chunks &ge; 12 mots)"]
+    B --> C["Embeddings MiniLM<br/>paraphrase-multilingual-MiniLM-L12-v2<br/>384-dim &middot; normalisés &middot; MPS"]
+    C --> D[("Index vectoriel local<br/>embeddings.npy + chunks.jsonl")]
+  end
+
+  subgraph QRY["REQUETE (par audit)"]
+    direction TB
+    E["Résultats CHIFFRÉS de l'audit<br/>worst_group &middot; sens du biais de calibration"] --> F["2-3 requêtes DÉRIVÉES<br/>(ciblées, pas au hasard)"]
+    F --> G["Embedding de la requête<br/>MiniLM &middot; 384-dim normalisé"]
+    G --> H["Similarité COSINUS = produit scalaire<br/>(vecteurs normalisés &rarr; numpy)"]
+    H --> I["Top-k + seuil min_score<br/>⚠️ garde-fou anti-hallucination<br/>(0 passage si rien ne dépasse le seuil)"]
+    I --> J["Dédup par source, section<br/>tri par score décroissant"]
+    J --> K["Passages CITÉS tels quels<br/>texte + source + section + score"]
+  end
+
+  D -. "recherche dans l'index" .-> H
+  K --> L["📄 Rapport &mdash; section « Contexte (littérature) »<br/><b>⛔ AUCUNE génération LLM &mdash; RAG extractif / cité</b>"]
+
+  classDef store fill:#eef3ff,stroke:#3b5bdb,stroke-width:1px;
+  classDef guard fill:#fff4e6,stroke:#e8590c,stroke-width:1px;
+  classDef out fill:#ebfbee,stroke:#2f9e44,stroke-width:1px;
+  class D store;
+  class I guard;
+  class L out;
